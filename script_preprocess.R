@@ -3,6 +3,7 @@ setwd('/extDisk2/toothepaste/')
 
 library('readr')
 library('magrittr')
+library('dplyr')
 
 rawpcr <- read_csv('normalize.csv')
 
@@ -30,5 +31,26 @@ rawpcr$P11[67] <- mean(rawpcr$P11[67:69], na.rm = TRUE)
 rawpcr$P11[98] <- mean(rawpcr$P11[97:99], na.rm = TRUE)
 rawpcr$P11[127] <- mean(rawpcr$P11[127:129], na.rm = TRUE)
 
+## blank group use delta-CT
+ctAA3W <- rawpcr %>%
+  filter(., Location == 'A', Time == '3weeks', Bacteria %in% c('AA', '16S')) %>%
+  select(., -P2, -Location, -Time) %>%
+  group_by(., Bacteria) %>%
+  summarise_all(funs(mean)) %>%
+  select(., -Bacteria)
+
+rawpcr$P2[64:66] <- (slice(ctAA3W, 2) - slice(ctAA3W, 1)) %>% unlist %>% mean
+
 save(rawpcr, file = 'rawpcr.RData')
 ################################################
+
+
+##########################manipulate CT#####################
+setwd('/extDisk2/toothepaste/')
+
+library('dplyr')
+
+load('rawpcr.RData')
+
+
+############################################################

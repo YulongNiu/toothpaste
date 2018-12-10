@@ -156,6 +156,30 @@ ggsave('negdeltadeltaCt.pdf', ml, width = 21, height = 12)
 write.csv(deltadeltaCt, file = 'negdeltadeltaCt.csv', row.names = FALSE)
 
 ## dot plot
+tmp1 <- deltadeltaCt %>%
+  select(., Location:Bacteria, p[i]) %>%
+  spread(., Time, P1) %>%
+  ggplot(., aes(x = `3weeks`, y = `3months`)) +
+  geom_point(aes(colour = Bacteria), size = 3)
 
+## merge all dot plot
+deltadeltaCt %>%
+  gather(., P1:P11, key = 'Person', value = 'ddCt') %>%
+  spread(., Time, ddCt) %>%
+  ggplot(., aes(x = `3weeks`, y = `3months`)) +
+  geom_point(aes(colour = Bacteria, shape = Location), size = 3)
+
+ggsave('weekmonthmerge.pdf')
+
+
+## merge split dot plot
+deltadeltaCt %>%
+  gather(., P1:P11, key = 'Person', value = 'ddCt') %>%
+  spread(., Time, ddCt) %>%
+  ggplot(., aes(x = `3weeks`, y = `3months`)) +
+  geom_point(aes(colour = Bacteria, shape = Location), size = 3) +
+  facet_wrap(. ~ Person, ncol = 2)
+
+ggsave('weekmonthsplit.pdf')
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ############################################################

@@ -4,6 +4,7 @@
 
 - [1. 数据分析策略](#1-数据分析策略)
     - [1.1 缺失数据填充](#11-缺失数据填充)
+    - [1.2 数据处理和分组](#12-数据处理和分组)
     
 <!-- content end -->
 
@@ -16,4 +17,9 @@
 
 * 整组缺失数据，例如`P2 3weeks AA`，使用剩余11个测试组的![](https://latex.codecogs.com/gif.latex?%5CDelta%20Ct)矫正后的均值替代。
 
+### 1.2 数据处理和分组 ###
+
+* 组内差异最小的数据集合为：同一人、同一取样时间、同一口腔位置、同一取样的三次重复。因此，这组数据的均值用于计算![](https://latex.codecogs.com/gif.latex?%5CDelta%20Ct)。
+
+* 同一人、同一取样时间的四个口腔位置，用于计算![](https://latex.codecogs.com/gif.latex?-%24%5CDelta%20%5CDelta%20Ct%24)。
 

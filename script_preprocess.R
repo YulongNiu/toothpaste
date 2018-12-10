@@ -59,7 +59,7 @@ library('gridExtra')
 load('rawpcr.RData')
 
 DeltaCT <- function(ct) {
-  ## INPUT: CT is numeric tbl_df. The first row is house keeping gene. The first column is the marker annotation.
+  ## INPUT: `ct` is numeric tbl_df. The first row is house keeping gene. The first column is the marker annotation.
   ## USAGE: Calculate the delta_ct.
   ## OUTPUT: A tbl_df
 
@@ -69,6 +69,21 @@ DeltaCT <- function(ct) {
   res <- ct %>%
     mutate_at(., -1, funs(. - first(.))) %>%
     slice(-1)
+
+  return(res)
+}
+
+DeltaDeltaCT <- function(deltact) {
+  ## INPUT: `deltact` is numeric tbl_df. The last rows are controls. The 1st column the Time, the 2nd column is the marker annotation.
+  ## USAGE: Calculate the delta_ct.
+  ## OUTPUT: A tbl_df
+
+  require('magrittr')
+  require('dplyr')
+
+  res <- deltact %>%
+    mutate_at(., -1:-2, funs(-(. - .[9:12]))) %>%
+    slice(-9:-12)
 
   return(res)
 }
@@ -97,7 +112,7 @@ for (i in seq_along(p)) {
     column_to_rownames(., var = 'Label')
 
   resp[[i]] <- plotMat %>%
-    kmeans(., centers = 3, nstart = 25) %>%
+    kmeans(., centers = 4, nstart = 25) %>%
     fviz_cluster(., data = plotMat) +
     ggtitle(p[i])
 
@@ -105,9 +120,42 @@ for (i in seq_along(p)) {
 
 ml <- marrangeGrob(resp, nrow = 2, ncol = 1)
 ggsave('deltaCt.pdf', ml, width = 21, height = 12)
+
+write.csv(deltaCt, file = 'deltaCt.csv', row.names = FALSE)
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-##~~~~~~~~~~~~~~~~~~~~~~~~~delta deltaCt~~~~~~~~~~~~~~~~~~~~
+##~~~~~~~~~~~~~~~~~~~~~~~~~delta delta Ct~~~~~~~~~~~~~~~~~~~~
+deltadeltaCt <- deltaCt %>%
+  group_by(., Location) %>%
+  do(., DeltaDeltaCT(select(., Time:P11))) %>%
+  ungroup
+
+## kmeans
+p <- paste0('P', 1:11)
+resp <- vector('list', 11)
+for (i in seq_along(p)) {
+
+  plotMat <- deltadeltaCt %>%
+    select(., Location:Bacteria, p[i]) %>%
+    spread(., Location, p[i]) %>%
+    mutate(., Label = paste(Bacteria, Time, sep = '_')) %>%
+    select(., -Time, -Bacteria) %>%
+    as.data.frame %>%
+    column_to_rownames(., var = 'Label')
+
+  resp[[i]] <- plotMat %>%
+    kmeans(., centers = 4, nstart = 25) %>%
+    fviz_cluster(., data = plotMat) +
+    ggtitle(p[i])
+
+}
+
+ml <- marrangeGrob(resp, nrow = 2, ncol = 1)
+ggsave('negdeltadeltaCt.pdf', ml, width = 21, height = 12)
+
+write.csv(deltadeltaCt, file = 'negdeltadeltaCt.csv', row.names = FALSE)
+
+## dot plot
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ############################################################

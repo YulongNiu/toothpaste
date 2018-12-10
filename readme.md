@@ -14,4 +14,6 @@
 
 * 组内缺失数据使用均值代替。
 
-* 整组缺失数据，例如`P2 3weeks AA`，使用剩余11个测试组的![](https://latex.codecogs.com/gif.latex?%5CDelta%20Ct)
+* 整组缺失数据，例如`P2 3weeks AA`，使用剩余11个测试组的![](https://latex.codecogs.com/gif.latex?%5CDelta%20Ct)矫正后的均值替代。
+
+

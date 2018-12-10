@@ -49,7 +49,12 @@ save(rawpcr, file = 'rawpcr.RData')
 setwd('/extDisk2/toothepaste/')
 
 library('dplyr')
+library('tidyr')
 library('magrittr')
+library('ggplot2')
+library('tibble')
+library('factoextra')
+library('gridExtra')
 
 load('rawpcr.RData')
 
@@ -69,14 +74,40 @@ DeltaCT <- function(ct) {
 }
 
 
-tmp1 <- rawpcr %>%
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~delta Ct~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+deltaCt <- rawpcr %>%
   group_by(., Location, Time, Bacteria) %>%
   summarise_all(., mean, na.rm = TRUE) %>%
-  do(., DeltaCT(select(., Bacteria:P11)))
+  do(., DeltaCT(select(., Bacteria:P11))) %>%
+  ungroup
 
+##  A B C D
+## AA_3months
+## AA_3weeks
+p <- paste0('P', 1:11)
+resp <- vector('list', 11)
+for (i in seq_along(p)) {
 
+  plotMat <- deltaCt %>%
+    select(., Location:Bacteria, p[i]) %>%
+    spread(., Location, p[i]) %>%
+    mutate(., Label = paste(Bacteria, Time, sep = '_')) %>%
+    select(., -Time, -Bacteria) %>%
+    as.data.frame %>%
+    column_to_rownames(., var = 'Label')
 
+  resp[[i]] <- plotMat %>%
+    kmeans(., centers = 3, nstart = 25) %>%
+    fviz_cluster(., data = plotMat) +
+    ggtitle(p[i])
 
+}
 
+ml <- marrangeGrob(resp, nrow = 2, ncol = 1)
+ggsave('deltaCt.pdf', ml, width = 21, height = 12)
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+##~~~~~~~~~~~~~~~~~~~~~~~~~delta deltaCt~~~~~~~~~~~~~~~~~~~~
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ############################################################

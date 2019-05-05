@@ -55,6 +55,7 @@ library('ggplot2')
 library('tibble')
 library('factoextra')
 library('gridExtra')
+library('readr')
 
 load('rawpcr.RData')
 
@@ -67,7 +68,7 @@ DeltaCT <- function(ct) {
   require('dplyr')
 
   res <- ct %>%
-    mutate_at(., -1, funs(. - first(.))) %>%
+    mutate_at(-1, ~funs(. - first(.))) %>%
     slice(-1)
 
   return(res)
@@ -82,8 +83,33 @@ DeltaDeltaCT <- function(deltact) {
   require('dplyr')
 
   res <- deltact %>%
-    mutate_at(., -1:-2, funs(-(. - .[9:12]))) %>%
+    mutate_at(-1:-2, ~funs(-(. - .[9:12]))) %>%
     slice(-9:-12)
+
+  return(res)
+}
+
+GroupMean <- function(ddct) {
+  ## INPUT: `ddct` is the deltadeltaCt. The 1st column is label. P1/P3/P5/P7/P9/P11 are control, and P2/P4/P6/P8/P10 are treatment.
+
+  require('magrittr')
+  require('dplyr')
+  require('tibble')
+
+  control <- ddct %>%
+    select(c(2, 4, 6, 8, 10, 12)) %>%
+    rowMeans
+
+  treatment <- ddct %>%
+    select(c(3, 5, 7, 9, 11)) %>%
+    rowMeans
+
+  meanM <- tibble(control = control,
+                  treatment = treatment)
+
+  res <- ddct %>%
+    select_at(1) %>%
+    bind_cols(meanM)
 
   return(res)
 }
@@ -157,7 +183,7 @@ write.csv(deltadeltaCt, file = 'negdeltadeltaCt.csv', row.names = FALSE)
 
 ## dot plot
 tmp1 <- deltadeltaCt %>%
-  select(., Location:Bacteria, p[i]) %>%
+  select(., Location:Bacteria, P1) %>%
   spread(., Time, P1) %>%
   ggplot(., aes(x = `3weeks`, y = `3months`)) +
   geom_point(aes(colour = Bacteria), size = 3)
@@ -168,7 +194,6 @@ deltadeltaCt %>%
   spread(., Time, ddCt) %>%
   ggplot(., aes(x = `3weeks`, y = `3months`)) +
   geom_point(aes(colour = Bacteria, shape = Location), size = 3)
-
 ggsave('weekmonthmerge.pdf')
 
 
@@ -179,7 +204,56 @@ deltadeltaCt %>%
   ggplot(., aes(x = `3weeks`, y = `3months`)) +
   geom_point(aes(colour = Bacteria, shape = Location), size = 3) +
   facet_wrap(. ~ Person, ncol = 2)
-
 ggsave('weekmonthsplit.pdf')
+
+##~~~~~~~~~~~~~~~~~~~~plot and test deltaCt~~~~~~~~~~~~~~~~~~~~~~
+ctPlotData <- deltadeltaCt %>%
+  gather(P1 : P11, key = 'Sample', value = 'nddct') %>%
+  mutate(Group = rep(c(rep(c('control', 'treatment'), 5), 'control'),  each = 32))
+
+ctPlotData %>%
+  ggplot(aes(x = Time, y = nddct, fill = Group, colour = Group)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.9)) +
+  geom_violin(alpha = 0.3, position = position_dodge(width=0.9)) +
+  geom_boxplot(alpha = 0.6, width = 0.1, outlier.colour = NA, position = position_dodge(width=0.9)) +
+  facet_wrap(. ~ Bacteria, ncol = 2) +
+  xlab('') +
+  ylab(expression(paste('-', Delta, Delta, 'Ct')))
+ggsave('control_treat_split.pdf')
+
+ctPlotData %>%
+  ggplot(aes(x = Time, y = nddct, fill = Group, colour = Group)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.9)) +
+  geom_violin(alpha = 0.3, position = position_dodge(width=0.9)) +
+  geom_boxplot(alpha = 0.6, width = 0.1, outlier.colour = NA, position = position_dodge(width=0.9)) +
+  xlab('') +
+  ylab(expression(paste('-', Delta, Delta, 'Ct')))
+ggsave('control_treat.pdf')
+
+ctPlotData %>%
+  group_by(Time, Group) %>%
+  transmute(t_test = nddct %>% t.test %>% .$p.value,
+            w_test = nddct %>% wilcox.test %>% .$p.value) %>%
+  distinct
+
+ctPlotData %>%
+  group_by(Time, Group, Bacteria) %>%
+  transmute(t_test = nddct %>% t.test %>% .$p.value,
+            w_test = nddct %>% wilcox.test %>% .$p.value) %>%
+  distinct
+
+ctPlotData %>%
+  group_by(Time) %>%
+  transmute(t_test = split(nddct, Group) %>% {t.test(.$control, .$treatment)} %>%.$p.value,
+            w_test = split(nddct, Group) %>% {wilcox.test(.$control, .$treatment)} %>%.$p.value) %>%
+  distinct
+
+ctPlotData %>%
+  group_by(Time, Bacteria) %>%
+  transmute(t_test = split(nddct, Group) %>% {t.test(.$control, .$treatment)} %>%.$p.value,
+            w_test = split(nddct, Group) %>% {wilcox.test(.$control, .$treatment)} %>%.$p.value) %>%
+  distinct
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ############################################################

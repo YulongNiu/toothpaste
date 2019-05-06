@@ -68,7 +68,7 @@ DeltaCT <- function(ct) {
   require('dplyr')
 
   res <- ct %>%
-    mutate_at(-1, ~funs(. - first(.))) %>%
+    mutate_at(-1, funs(. - first(.))) %>%
     slice(-1)
 
   return(res)
@@ -83,7 +83,7 @@ DeltaDeltaCT <- function(deltact) {
   require('dplyr')
 
   res <- deltact %>%
-    mutate_at(-1:-2, ~funs(-(. - .[9:12]))) %>%
+    mutate_at(-1:-2, funs(-(. - .[9:12]))) %>%
     slice(-9:-12)
 
   return(res)

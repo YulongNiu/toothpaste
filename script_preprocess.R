@@ -68,7 +68,7 @@ DeltaCT <- function(ct) {
   require('dplyr')
 
   res <- ct %>%
-    mutate_at(-1, funs(. - first(.))) %>%
+    mutate_at(-1, .funs = ~(. - first(.))) %>%
     slice(-1)
 
   return(res)
@@ -83,7 +83,7 @@ DeltaDeltaCT <- function(deltact) {
   require('dplyr')
 
   res <- deltact %>%
-    mutate_at(-1:-2, funs(-(. - .[9:12]))) %>%
+    mutate_at(-1:-2, .funs = ~(-(. - .[9:12]))) %>%
     slice(-9:-12)
 
   return(res)
@@ -113,7 +113,6 @@ GroupMean <- function(ddct) {
 
   return(res)
 }
-
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~delta Ct~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 deltaCt <- rawpcr %>%
@@ -193,7 +192,9 @@ deltadeltaCt %>%
   gather(., P1:P11, key = 'Person', value = 'ddCt') %>%
   spread(., Time, ddCt) %>%
   ggplot(., aes(x = `3weeks`, y = `3months`)) +
-  geom_point(aes(colour = Bacteria, shape = Location), size = 3)
+  geom_point(aes(colour = Bacteria, shape = Location), size = 3) +
+  xlab('3 weeks') +
+  ylab('3 months')
 ggsave('weekmonthmerge.pdf')
 
 
@@ -201,19 +202,23 @@ ggsave('weekmonthmerge.pdf')
 deltadeltaCt %>%
   gather(., P1:P11, key = 'Person', value = 'ddCt') %>%
   spread(., Time, ddCt) %>%
+  mutate(Person = Person %>% factor(labels = c(paste(rep(c('control', 'treatment'), 5), rep(1:5, each = 2)), 'control 6'))) %>%
   ggplot(., aes(x = `3weeks`, y = `3months`)) +
   geom_point(aes(colour = Bacteria, shape = Location), size = 3) +
-  facet_wrap(. ~ Person, ncol = 2)
+  facet_wrap(. ~ Person, ncol = 2) +
+  xlab('3 weeks') +
+  ylab('3 months')
 ggsave('weekmonthsplit.pdf')
 
 ##~~~~~~~~~~~~~~~~~~~~plot and test deltaCt~~~~~~~~~~~~~~~~~~~~~~
 ctPlotData <- deltadeltaCt %>%
   gather(P1 : P11, key = 'Sample', value = 'nddct') %>%
-  mutate(Group = rep(c(rep(c('control', 'treatment'), 5), 'control'),  each = 32))
+  mutate(Group = rep(c(rep(c('control', 'treatment'), 5), 'control'),  each = 32)) %>%
+  mutate(Time = Time %>% factor(labels = c('3 months', '3 weeks')) %>% factor(levels = c('3 weeks', '3 months')))
 
 ctPlotData %>%
   ggplot(aes(x = Time, y = nddct, fill = Group, colour = Group)) +
-  geom_point(position=position_jitterdodge(dodge.width=0.9)) +
+  geom_point(aes(shape = Location, group = Group), position=position_jitterdodge(dodge.width=0.9)) +
   geom_violin(alpha = 0.3, position = position_dodge(width=0.9)) +
   geom_boxplot(alpha = 0.6, width = 0.1, outlier.colour = NA, position = position_dodge(width=0.9)) +
   facet_wrap(. ~ Bacteria, ncol = 2) +
@@ -223,7 +228,7 @@ ggsave('control_treat_split.pdf')
 
 ctPlotData %>%
   ggplot(aes(x = Time, y = nddct, fill = Group, colour = Group)) +
-  geom_point(position=position_jitterdodge(dodge.width=0.9)) +
+  geom_point(aes(shape = Location, group = Group), position=position_jitterdodge(dodge.width=0.9)) +
   geom_violin(alpha = 0.3, position = position_dodge(width=0.9)) +
   geom_boxplot(alpha = 0.6, width = 0.1, outlier.colour = NA, position = position_dodge(width=0.9)) +
   xlab('') +

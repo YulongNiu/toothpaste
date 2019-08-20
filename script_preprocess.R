@@ -188,7 +188,11 @@ tmp1 <- deltadeltaCt %>%
   geom_point(aes(colour = Bacteria), size = 3)
 
 ## merge all dot plot
-deltadeltaCt %>%
+deltadeltaCtPlot <- deltadeltaCt %>%
+  filter(Bacteria != 'TF') %>%
+  mutate(Bacteria = if_else(Bacteria == 'BF', 'TF', Bacteria))
+
+deltadeltaCtPlot %>%
   gather(., P1:P11, key = 'Person', value = 'ddCt') %>%
   spread(., Time, ddCt) %>%
   ggplot(., aes(x = `3weeks`, y = `3months`)) +
@@ -199,7 +203,7 @@ ggsave('weekmonthmerge.pdf')
 
 
 ## merge split dot plot
-deltadeltaCt %>%
+deltadeltaCtPlot %>%
   gather(., P1:P11, key = 'Person', value = 'ddCt') %>%
   spread(., Time, ddCt) %>%
   mutate(Person = Person %>% factor(labels = c(paste(rep(c('control', 'treatment'), 5), rep(1:5, each = 2)), 'control 6'))) %>%
@@ -211,9 +215,9 @@ deltadeltaCt %>%
 ggsave('weekmonthsplit.pdf')
 
 ##~~~~~~~~~~~~~~~~~~~~plot and test deltaCt~~~~~~~~~~~~~~~~~~~~~~
-ctPlotData <- deltadeltaCt %>%
+ctPlotData <- deltadeltaCtPlot %>%
   gather(P1 : P11, key = 'Sample', value = 'nddct') %>%
-  mutate(Group = rep(c(rep(c('control', 'treatment'), 5), 'control'),  each = 32)) %>%
+  mutate(Group = rep(c(rep(c('control', 'treatment'), 5), 'control'),  each = 24)) %>%
   mutate(Time = Time %>% factor(labels = c('3 months', '3 weeks')) %>% factor(levels = c('3 weeks', '3 months')))
 
 ctPlotData %>%
